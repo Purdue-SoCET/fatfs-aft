@@ -1,0 +1,3 @@
+[submodule "external/aft-femtokernel"]
+	path = external/aft-femtokernel
+	url = git@github.com:Purdue-SoCET/aft-femtokernel.git
