@@ -9,6 +9,9 @@
 
 #include "ff.h"			/* Obtains integer types */
 #include "diskio.h"		/* Declarations of disk functions */
+#include "diskio_ram.h"
+#include "diskio_mmc.h"
+#include "diskio_usb.h"
 
 /* Definitions of physical drive number for each drive */
 #define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
@@ -31,21 +34,27 @@ DSTATUS disk_status (
 	case DEV_RAM :
 		result = RAM_disk_status();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 
 	case DEV_MMC :
 		result = MMC_disk_status();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 
 	case DEV_USB :
 		result = USB_disk_status();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 	}
@@ -69,21 +78,27 @@ DSTATUS disk_initialize (
 	case DEV_RAM :
 		result = RAM_disk_initialize();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 
 	case DEV_MMC :
 		result = MMC_disk_initialize();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 
 	case DEV_USB :
 		result = USB_disk_initialize();
 
+        // TODO:
 		// translate the reslut code here
+        stat = result;
 
 		return stat;
 	}
@@ -108,29 +123,38 @@ DRESULT disk_read (
 
 	switch (pdrv) {
 	case DEV_RAM :
+        // TODO:
 		// translate the arguments here
 
 		result = RAM_disk_read(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 
 	case DEV_MMC :
+        // TODO:
 		// translate the arguments here
 
 		result = MMC_disk_read(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 
 	case DEV_USB :
+        // TODO:
 		// translate the arguments here
 
 		result = USB_disk_read(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 	}
@@ -158,29 +182,38 @@ DRESULT disk_write (
 
 	switch (pdrv) {
 	case DEV_RAM :
+        // TODO:
 		// translate the arguments here
 
 		result = RAM_disk_write(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 
 	case DEV_MMC :
+        // TODO:
 		// translate the arguments here
 
 		result = MMC_disk_write(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 
 	case DEV_USB :
+        // TODO:
 		// translate the arguments here
 
 		result = USB_disk_write(buff, sector, count);
 
+        // TODO:
 		// translate the reslut code here
+        res = result;
 
 		return res;
 	}
