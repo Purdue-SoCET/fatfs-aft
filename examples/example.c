@@ -62,13 +62,85 @@ int test_raw_speed(BYTE pdrv,   /* Physical drive number */
     return 1;
 }
 
+void print_error(FRESULT res) {
+    switch (res) {
+    case FR_DISK_ERR:
+        print("FR_DISK_ERR\n");
+        break;
+    case FR_INT_ERR:
+        print("FR_INT_ERR\n");
+        break;
+    case FR_NOT_READY:
+        print("FR_NOT_READY\n");
+        break;
+    case FR_NO_FILE:
+        print("FR_NO_FILE\n");
+        break;
+    case FR_NO_PATH:
+        print("FR_NO_PATH\n");
+        break;
+    case FR_INVALID_NAME:
+        print("FR_INVALID_NAME\n");
+        break;
+    case FR_DENIED:
+        print("FR_DENIED\n");
+        break;
+    case FR_EXIST:
+        print("FR_EXIST\n");
+        break;
+    case FR_INVALID_OBJECT:
+        print("FR_INVALID_OBJECT\n");
+        break;
+    case FR_WRITE_PROTECTED:
+        print("FR_WRITE_PROTECTED\n");
+        break;
+    case FR_INVALID_DRIVE:
+        print("FR_INVALID_DRIVE\n");
+        break;
+    case FR_NOT_ENABLED:
+        print("FR_NOT_ENABLED\n");
+        break;
+    case FR_NO_FILESYSTEM:
+        print("FR_NO_FILESYSTEM\n");
+        break;
+    case FR_MKFS_ABORTED:
+        print("FR_MKFS_ABORTED\n");
+        break;
+    case FR_TIMEOUT:
+        print("FR_TIMEOUT\n");
+        break;
+    case FR_LOCKED:
+        print("FR_LOCKED\n");
+        break;
+    case FR_NOT_ENOUGH_CORE:
+        print("FR_NOT_ENOUGH_CORE\n");
+        break;
+    case FR_TOO_MANY_OPEN_FILES:
+        print("FR_TOO_MANY_OPEN_FILES\n");
+        break;
+    case FR_INVALID_PARAMETER:
+        print("FR_INVALID_PARAMETER\n");
+        break;
+    default: {
+    }
+    }
+}
+
 int main() {
     print("hello");
-    if (f_chdir("/") != FR_OK) {
+    FATFS fs;
+    FRESULT res;
+    if ((res = f_mount(&fs, "", 0)) != FR_OK) {
+        print_error(res);
+        return -1;
+    };
+    if ((res = f_mkdir("/stuff")) != FR_OK) {
+        print_error(res);
         return -1;
     }
-    if (f_mkdir("/stuff") != FR_OK) {
-        return -1;
-    }
+    // DIR dir;
+    // if (f_opendir(&dir, "/") != FR_OK) {
+    //     return -1;
+    // }
     return 0;
 }
