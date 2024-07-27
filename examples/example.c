@@ -14,52 +14,20 @@ uint32_t get_mtime() {
     return clint->mtime;
 }
 
-int test_raw_speed(BYTE pdrv,   /* Physical drive number */
-                   DWORD lba,   /* Start LBA for read/write test */
-                   DWORD len,   /* Number of bytes to read/write (must be multiple of sz_buff) */
-                   void *buff,  /* Read/write buffer */
-                   UINT sz_buff /* Size of read/write buffer (must be multiple of FF_MAX_SS) */
+FRESULT open_append(FIL *fp,         /* [OUT] File object to create */
+                    const char *path /* [IN]  File name to be opened */
 ) {
-    WORD ss;
-    DWORD ofs, tmr;
+    FRESULT fr;
 
-#if FF_MIN_SS != FF_MAX_SS
-    if (disk_ioctl(pdrv, GET_SECTOR_SIZE, &ss) != RES_OK) {
-        printf("\ndisk_ioctl() failed.\n");
-        return 0;
+    /* Opens an existing file. If not exist, creates a new file. */
+    fr = f_open(fp, path, FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
+    if (fr == FR_OK) {
+        /* Seek to end of the file to append data */
+        fr = f_lseek(fp, f_size(fp));
+        if (fr != FR_OK)
+            f_close(fp);
     }
-#else
-    ss = FF_MAX_SS;
-#endif
-
-    print("Starting raw write test at sector %lu in %u bytes of data chunks...", lba, sz_buff);
-    tmr = get_mtime();
-    for (ofs = 0; ofs < len / ss; ofs += sz_buff / ss) {
-        if (disk_write(pdrv, buff, lba + ofs, sz_buff / ss) != RES_OK) {
-            print("\ndisk_write() failed.\n");
-            return 0;
-        }
-    }
-    if (disk_ioctl(pdrv, CTRL_SYNC, 0) != RES_OK) {
-        print("\ndisk_ioctl() failed.\n");
-        return 0;
-    }
-    tmr = get_mtime() - tmr;
-    print("\n%lu bytes written and it took %lu timer ticks.\n", len, tmr);
-
-    print("Starting raw read test at sector %lu in %u bytes of data chunks...", lba, sz_buff);
-    tmr = get_mtime();
-    for (ofs = 0; ofs < len / ss; ofs += sz_buff / ss) {
-        if (disk_read(pdrv, buff, lba + ofs, sz_buff / ss) != RES_OK) {
-            print("\ndisk_read() failed.\n");
-            return 0;
-        }
-    }
-    tmr = get_mtime() - tmr;
-    print("\n%lu bytes read and it took %lu timer ticks.\n", len, tmr);
-
-    print("Test completed.\n");
-    return 1;
+    return fr;
 }
 
 void print_error(FRESULT res) {
@@ -127,20 +95,37 @@ void print_error(FRESULT res) {
 }
 
 int main() {
-    print("hello");
     FATFS fs;
     FRESULT res;
     if ((res = f_mount(&fs, "", 0)) != FR_OK) {
         print_error(res);
         return -1;
     };
-    if ((res = f_mkdir("/stuff")) != FR_OK) {
+    DIR dir;
+    if ((res = f_mkdir("/STUFF")) != FR_OK && res != FR_EXIST) {
         print_error(res);
         return -1;
     }
-    // DIR dir;
-    // if (f_opendir(&dir, "/") != FR_OK) {
-    //     return -1;
-    // }
+    FIL file;
+    if ((res = open_append(&file, "/STUFF/LOGFILE.TXT")) != FR_OK) {
+        print_error(res);
+        return -1;
+    }
+    f_printf(&file, "May 6, 1869\n");
+    if ((res = f_lseek(&file, 0)) != FR_OK) {
+        print_error(res);
+        return -1;
+    };
+    while (!f_eof(&file)) {
+        char buf[32];
+        UINT bytes_read;
+        if ((res = f_read(&file, buf, 32, &bytes_read)) != FR_OK) {
+            print_error(res);
+            return -1;
+        }
+        print(buf);
+    }
+    f_close(&file);
+
     return 0;
 }
