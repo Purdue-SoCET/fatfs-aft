@@ -27,7 +27,7 @@ DRESULT RAM_disk_read(BYTE *buff, LBA_t sector, UINT count) {
 DRESULT RAM_disk_write(const BYTE *buff, LBA_t sector, UINT count) {
     for (unsigned int i = 0; i < (FF_MAX_SS * count); i += 4) {
         unsigned int word =
-            (buff[i + 3] << 24) | (buff[i + 2] << 16) | (buff[i + 1] << 8) | buff[i];
+            (buff[i] << 24) | (buff[i + 1] << 16) | (buff[i + 2] << 8) | buff[i + 3];
         RAM_DISK_ADDR[((sector * FF_MAX_SS) + i) / 4] = word;
     }
     return RES_OK;
