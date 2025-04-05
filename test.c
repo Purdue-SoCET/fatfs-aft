@@ -1,5 +1,6 @@
 #include "source/ff.h"
 #include <stdio.h>
+#include "source/spi_sd.h"
 
 int main() {
     volatile unsigned int *GPIO_DATA = 0x80000000;
@@ -15,7 +16,8 @@ int main() {
     }
     printf("TESTING");
 
-
-    f_mount(0, 0, 0);
+    spi_gpio_init();
+    sd_cmd(0xAA, 0xBBBBB, 0xBB);
+    
     return 0;
 }

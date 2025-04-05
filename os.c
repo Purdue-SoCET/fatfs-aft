@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "pal.h"
+#include "source/pal.h"
 
 #ifdef UART_STDIO
 #define BAUD_CYCLES 2604

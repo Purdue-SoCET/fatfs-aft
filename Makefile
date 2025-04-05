@@ -12,7 +12,7 @@ CFLAGS += -DUART_STDIO
 # SRCS = os.c main.c
 # SRCS = blink.c
 SRCS = test.c os.c  $(FATFS)
-FATFS = source/diskio.c source/ff.c source/ffsystem.c source/ffunicode.c source/sdio.c source/time.c
+FATFS = source/*.c
 
 # Output files
 TARGET = a.out
