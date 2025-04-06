@@ -36,14 +36,18 @@ void spi_send_byte(char msg){
 
 char sd_rcv_byte(void){
 	// TODO: Complete
+
+	char rtv = 0;
+	volatile unsigned int* GPIO_0_DATA = 0x80000000;
+	//msb to lsb, wait 100 clocks, then poll.
 	for(int i = 7; i >= 0; i--){
 		
-		for(int j = 0; i < 100; j++){
-		
+		for(int j = 0; i < 200; j++){
+		if(j == 199) char |= ((*GPIO_0_DATA & Pin1) >>1) << i; 
 		}
 	}
 
-	return 0xFF;
+	return rtv;
 }
 
 char sd_cmd(char index, int msg, char crc){
@@ -68,7 +72,7 @@ char sd_cmd(char index, int msg, char crc){
 	spi_send_byte(msg_3);
 	spi_send_byte(msg_4);
 	spi_send_byte(crc);
-	
+	char rtv = sd_rcv_byte();
 	// TODO: Call SD Receive Byte
 	return rtv;	
 }
