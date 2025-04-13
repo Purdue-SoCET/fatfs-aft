@@ -5,6 +5,7 @@
 void spi_gpio_init(void) {
 	volatile unsigned int* GPIO_0_DDR = 0x80000004;
 	volatile unsigned int* GPIO_0_PER = 0x80000012;
+	*GPIO_0_DDR &= ~(Pin1);
 	*GPIO_0_DDR |= (Pin0) | (Pin2) | (Pin3);
 }
 
@@ -21,33 +22,69 @@ void spi_send_byte(char msg){
 	volatile unsigned int* GPIO_0_DATA = 0x80000000;
 	volatile char not_used;
 
-	*GPIO_0_DATA ^= Pin3;
-	for(int i = 16; i > 0; i--){
-		if((i & 1)) new_val = (new_val & ~(1)) | ((msg >> (i>>1)) &1); // load bit from msg into new_val
-		else not_used = (new_val & ~(1)) | ((msg >> (i>>1)) &1);
-
-		new_val ^= 1 << 2; //
-		new_val |= 1 <<3; 
+	// *GPIO_0_DATA ^= Pin3;
+	for(int i = 17; i > 1; i--){
+		if((i & 1)) { // negedge
+			new_val = (new_val & ~(1)) | ((msg>>7) &1); // load bit from msg into new_val
+			msg <<= 1;
+			new_val &= ~Pin2;
+		}
+		else { // posedge
+			not_used = (new_val & ~(1)) | ((msg>>7) &1);
+			not_used >>= 1;
+			new_val |= Pin2;
+		}
 		*GPIO_0_DATA = new_val;		
 	}
-	*GPIO_0_DATA ^= Pin3;
+
+	// *GPIO_0_DATA ^= Pin3;
 	return;
 }
 
-char sd_rcv_byte(void){
-	// TODO: Complete
-
-	char rtv = 0;
+char sd_rcv_byte(void) {
+	char new_val = Pin0;
+	// new_val &= ~Pin3;
 	volatile unsigned int* GPIO_0_DATA = 0x80000000;
-	//msb to lsb, wait 100 clocks, then poll.
-	for(int i = 7; i >= 0; i--){
-		
-		for(int j = 0; i < 200; j++){
-		if(j == 199) char |= ((*GPIO_0_DATA & Pin1) >>1) << i; 
+
+	// Wait for a start bit from the SD card, on MISO (Pin1)
+	uint8_t found_start_bit = 0;
+	uint8_t clk_high = 0;
+	int attempts = 0;
+	while (!found_start_bit && (attempts < 200)) {
+		if(clk_high) { // currently on pos, setting neg
+			new_val ^= Pin2;
+			*GPIO_0_DATA = new_val; // negedge
+			clk_high = 0;
 		}
+		else { // is neg, setting pos
+			new_val ^= Pin2;
+			*GPIO_0_DATA = new_val; // posedge
+			if(!(*GPIO_0_DATA & Pin1)) {
+				found_start_bit = 1;
+			}
+			clk_high = 1;
+		}
+		attempts++;
+	}
+	if(attempts == 200) return 0xFF;
+
+	// Sending one last negative edge
+	new_val ^= Pin2;
+	*GPIO_0_DATA = new_val;
+
+	char read_data = 0;
+	// Read in 7 bits
+	for(int i = 6; i >= 0; i--) {
+		new_val ^= Pin2;
+		*GPIO_0_DATA = new_val; // posedge
+		read_data |= (*GPIO_0_DATA & Pin1) >> 1;
+		read_data <<= 1;
+		
+		new_val ^= Pin2;
+		*GPIO_0_DATA = new_val; // negedge
 	}
 
-	return rtv;
+	return read_data >> 1;
 }
 
 char sd_cmd(char index, int msg, char crc){
@@ -66,14 +103,16 @@ char sd_cmd(char index, int msg, char crc){
 	char rtv = 0x00;
 	volatile unsigned int* GPIO_0_DATA = 0x80000000;
 	
+	*GPIO_0_DATA &= ~Pin3;
 	spi_send_byte(index);
 	spi_send_byte(msg_1);	
 	spi_send_byte(msg_2);
 	spi_send_byte(msg_3);
 	spi_send_byte(msg_4);
 	spi_send_byte(crc);
-	char rtv = sd_rcv_byte();
+	rtv = sd_rcv_byte();
 	// TODO: Call SD Receive Byte
+	*GPIO_0_DATA |= Pin3;
 	return rtv;	
 }
 

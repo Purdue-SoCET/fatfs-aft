@@ -50,6 +50,7 @@ clean:
 #flashes the bin to the fpga
 $(FPGA_MIF): $(BIN)
 	python3 ../bin_to_mif.py
+	scp $(FPGA_MIF) ececomp:
 
 fpga_compile:
 	cd .. && \

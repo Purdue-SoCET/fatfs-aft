@@ -29,8 +29,8 @@ static int __getc(FILE *file)
 static void __init_uart(void) __attribute__((constructor));
 static void __init_uart(void)
 {
-    gpio->ddr = 0xFFFF;
-    gpio->data = 0x0;
+    // gpio->ddr = 0xFFFF;
+    // gpio->data = 0x0;
     
     uart->rxstate = (BAUD_CYCLES / 16) << 16;
     uart->txstate = BAUD_CYCLES << 16;
