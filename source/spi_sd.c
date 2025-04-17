@@ -76,7 +76,7 @@ char sd_cmd(char index, int msg, char crc){
 	crc = (crc <<1) | 1;
 	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
 	
-	*GPIO_0_DATA &= ~Pin3;
+	// *GPIO_0_DATA &= ~Pin3;
 	spi_send_byte(index);
 	spi_send_byte(msg_1);	
 	spi_send_byte(msg_2);
@@ -90,7 +90,7 @@ char sd_cmd(char index, int msg, char crc){
 		rtv = sd_rcv_byte();
 		i++;
 	}
-	*GPIO_0_DATA |= Pin3;
+	// *GPIO_0_DATA |= Pin3;
 	return rtv;	
 }
 
