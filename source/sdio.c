@@ -116,3 +116,37 @@ sd_read_block(unsigned char* buffer, uint32_t sector_no) {
 	sd_rcv_byte();
 	return 0;
 }
+
+int SD_disk_write(unsigned char* buffer, uint32_t sector_no, unsigned int count) {
+	printf("SD_disk_write: attempting to write %d blocks starting at sector %d\n", count, sector_no);
+    for(int cur_sec = 0; cur_sec < count; cur_sec++){
+	//single block writes
+		int rtv = sd_cmd(24,sector_no + cur_sec, 0);
+		if(rtv != 0x00){
+			printf("SD_disk_write: Command 24 responded with 0x%2x instead of 0x00\n", rtv);
+			return -1;
+		}
+		spi_send_byte(0xFF);
+		//send every byte in the 512. Start with the token, which is 0xFE
+		spi_send_byte(0xFE);
+		for(int cur_byte = 0; cur_byte < 512; cur_byte++){
+			spi_send_byte(buffer[cur_sec*512 + cur_byte]);
+		}
+		//Pad the end of the sector write with CRC.
+		spi_send_byte(0);
+		spi_send_byte(0);
+		//Poll the data response.
+		char data_response = sd_rcv_byte();
+
+		int attempts = 0;
+		while((sd_rcv_byte() == 0x00) && (attempts < 512)) {
+			attempts++;
+		}
+		if(attempts == 512) {
+			printf("Attempting write, stuck in BUSY\n");
+		}
+	}
+	printf("SD_disk_write: completed, exiting with success code of 1.\n");
+	printf("Blocks %d to %d were written to!\n", sector_no, sector_no + count);
+	return 1;
+};
