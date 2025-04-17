@@ -29,9 +29,10 @@ DSTATUS disk_status (
 	switch (pdrv) {
 	case DEV_SD :
 		result = SD_disk_status();
-
+		
 		// translate the result code here
-
+		if(result == 0) stat = 0;
+		else stat = STA_NOINIT;
 		return stat;
 
 	}

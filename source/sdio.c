@@ -4,6 +4,13 @@
 #include <stdio.h>
 
 int SD_disk_status() {
+	sd_cmd(58,0,1);
+	uint32_t ocr = sd_rcv_r3();
+	if(ocr & 0x8000) {
+		return 0;
+	}
+	else
+		return -1;
 
 };
 
@@ -60,59 +67,12 @@ int SD_disk_read(unsigned char* buffer, uint32_t sector_no, unsigned int count) 
 	uint8_t response;
 	// Completes a multi block read via CMD18
 
-	// Send CMD18
-	int rtv = sd_cmd(18, sector_no, 0);
-	if(rtv == 0xFF) return -1;
-
 	// Loop through each sector
 	for (int cur_sec = 0; cur_sec < count; cur_sec++) {
-		
-		// Reading Data Token
-		attempts = 0;
-		const int MAX_ATTEMPTS = 512;
-		response = 0xFF;
-		while ((response == 0xFF) && (attempts < MAX_ATTEMPTS)) {
-			response = sd_rcv_byte();
-			// buffer[attempts] = response;
-			attempts++;
-		}
-		if((response == 0xFF) && (response & (1 << 8))) { // Timeout
-			printf("Attempted to read SD with CMD 18, timeout waiting for response, last got %x\n", response);
+		if(sd_read_block(buffer+512*cur_sec, sector_no+cur_sec)) {
+			printf("Failed on read of block %d/%d. Actually block %d\n", cur_sec+1,count, sector_no + 512);
 			return -1;
 		}
-		// else if (!(response & (0x1 << 8))) { // Error
-		// 	printf("Attempted to read SD with CMD 18, error token recieved: %x\n", response);
-		// 	return -1;
-		// }
-
-		// Reading in data values
-		for (int cur_byte = 0; cur_byte < 512; cur_byte++) {
-			buffer[cur_byte + (512*cur_sec)] = sd_rcv_byte();
-		}
-
-		// Taking in CRC, not used
-		sd_rcv_byte();
-		sd_rcv_byte();
-	}
-	// Completed reading, terminate reading with CMD12
-	sd_cmd(12, 0, 0); // rtv discarded, stuff byte
-
-	attempts = 0;
-	response = 0;
-	while (attempts < 8 && (response = sd_rcv_byte())) attempts++;
-	if(response != 0xFF) {
-		printf("Attempted to terminate read with CMD12, R1 repsonse err = %x\n", response);
-		return -1;
-	}
-
-	// Reading Data Token
-	attempts = 0;
-	const int MAX_ATTEMPTS = 512;
-	response = 0;
-	while (((response = sd_rcv_byte()) != 0xFF) && (attempts < MAX_ATTEMPTS)) attempts++;
-	if(response != 0xFF) {
-		printf("Attempted to terminate read with CMD12, didn't return to idle, got %x\n", response);
-		return -1;
 	}
 
 	printf("Completed a read of the disk\n");
@@ -120,5 +80,39 @@ int SD_disk_read(unsigned char* buffer, uint32_t sector_no, unsigned int count) 
 };
 
 int SD_disk_write() {
-    
+
 };
+
+sd_read_block(unsigned char* buffer, uint32_t sector_no) {
+	int rtv = sd_cmd(17, sector_no, 0);
+	if(rtv == 0xFF) {
+		printf("Attempted reading of SD card at block %d, command 17 gave no response\n", sector_no);
+		return -1;
+	}
+	// Reading Data Token
+	int attempts = 0;
+	const int MAX_ATTEMPTS = 512;
+	uint8_t response = 0xFF;
+
+	while ((response == 0xFF) && (attempts < MAX_ATTEMPTS)) {
+		response = sd_rcv_byte();
+		// buffer[attempts] = response;
+		attempts++;
+	}
+	if(response == 0xFF) { // Timeout
+		printf("Attempted to read SD with CMD 17, timeout waiting for Data Token\n");
+		return -1;
+	} else if (response != 0xFE) {
+		printf("Attempted to read SD with CMD 17, got back invalid Data Token %x\n", response);
+	}
+
+	// Reading in data values
+	for (int cur_byte = 0; cur_byte < 512; cur_byte++) {
+		buffer[cur_byte + (512*sector_no)] = sd_rcv_byte();
+	}
+
+	// Taking in CRC, not used
+	sd_rcv_byte();
+	sd_rcv_byte();
+	return 0;
+}
