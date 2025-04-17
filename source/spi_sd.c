@@ -3,8 +3,8 @@
 #include "spi_sd.h"
 
 void spi_gpio_init(void) {
-	volatile unsigned int* GPIO_0_DDR = 0x80000004;
-	volatile unsigned int* GPIO_0_PER = 0x80000012;
+	volatile unsigned int* GPIO_0_DDR = (unsigned int*) 0x80000004;
+	volatile unsigned int* GPIO_0_PER = (unsigned int*) 0x80000012;
 	*GPIO_0_DDR &= ~(Pin1);
 	*GPIO_0_DDR |= (Pin0) | (Pin2) | (Pin3);
 }
@@ -19,7 +19,7 @@ void spi_gpio_init(void) {
  * */
 void spi_send_byte(char msg){
 	char new_val = 0;
-	volatile unsigned int* GPIO_0_DATA = 0x80000000;
+	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
 	volatile char not_used;
 
 	// *GPIO_0_DATA ^= Pin3;
@@ -34,57 +34,31 @@ void spi_send_byte(char msg){
 			not_used >>= 1;
 			new_val |= Pin2;
 		}
-		*GPIO_0_DATA = new_val;		
+		*GPIO_0_DATA = new_val;
 	}
+	*GPIO_0_DATA &= ~Pin2;
 
-	// *GPIO_0_DATA ^= Pin3;
 	return;
 }
 
 char sd_rcv_byte(void) {
+	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
 	char new_val = Pin0;
-	// new_val &= ~Pin3;
-	volatile unsigned int* GPIO_0_DATA = 0x80000000;
-
-	// Wait for a start bit from the SD card, on MISO (Pin1)
-	uint8_t found_start_bit = 0;
-	uint8_t clk_high = 0;
-	int attempts = 0;
-	while (!found_start_bit && (attempts < 200)) {
-		if(clk_high) { // currently on pos, setting neg
-			new_val ^= Pin2;
-			*GPIO_0_DATA = new_val; // negedge
-			clk_high = 0;
-		}
-		else { // is neg, setting pos
-			new_val ^= Pin2;
-			*GPIO_0_DATA = new_val; // posedge
-			if(!(*GPIO_0_DATA & Pin1)) {
-				found_start_bit = 1;
-			}
-			clk_high = 1;
-		}
-		attempts++;
-	}
-	if(attempts == 200) return 0xFF;
-
-	// Sending one last negative edge
-	new_val ^= Pin2;
-	*GPIO_0_DATA = new_val;
 
 	char read_data = 0;
-	// Read in 7 bits
-	for(int i = 6; i >= 0; i--) {
+	// Read in 8 bits
+	for(int i = 0; i < 8; i++) {
 		new_val ^= Pin2;
 		*GPIO_0_DATA = new_val; // posedge
-		read_data |= (*GPIO_0_DATA & Pin1) >> 1;
+
 		read_data <<= 1;
+		read_data |= (*GPIO_0_DATA & Pin1) >> 1;
 		
 		new_val ^= Pin2;
 		*GPIO_0_DATA = new_val; // negedge
 	}
 
-	return read_data >> 1;
+	return read_data;
 }
 
 char sd_cmd(char index, int msg, char crc){
@@ -100,8 +74,7 @@ char sd_cmd(char index, int msg, char crc){
 	char msg_3 = (msg & 0xFF00) >> 8;
 	char msg_4 = (msg & 0xFF);
 	crc = (crc <<1) | 1;
-	char rtv = 0x00;
-	volatile unsigned int* GPIO_0_DATA = 0x80000000;
+	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
 	
 	*GPIO_0_DATA &= ~Pin3;
 	spi_send_byte(index);
@@ -110,8 +83,13 @@ char sd_cmd(char index, int msg, char crc){
 	spi_send_byte(msg_3);
 	spi_send_byte(msg_4);
 	spi_send_byte(crc);
-	rtv = sd_rcv_byte();
-	// TODO: Call SD Receive Byte
+
+	int i = 0;
+	char rtv = 0xFF;
+	while(i < 9 && rtv == 0xFF) {
+		rtv = sd_rcv_byte();
+		i++;
+	}
 	*GPIO_0_DATA |= Pin3;
 	return rtv;	
 }

@@ -56,9 +56,10 @@ DSTATUS disk_initialize (
 		result = SD_disk_initialize();
 
 		// translate the result code here
+		if(result == 0xFF) stat = STA_NOINIT;
+		else stat = 0;
 
 		return stat;
-
 	}
 	return STA_NOINIT;
 }
@@ -84,9 +85,9 @@ DRESULT disk_read (
 		// translate the arguments here
 
 		result = SD_disk_read(buff, sector, count);
-
+		if(result == 0) res = RES_OK;
+		else res = RES_ERROR;
 		// translate the result code here
-
 		return res;
 
 	}
