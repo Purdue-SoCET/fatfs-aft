@@ -116,11 +116,13 @@ DRESULT disk_write (
 	switch (pdrv) {
 	case DEV_SD :
 		// translate the arguments here
-
+		DSTATUS sd_state = disk_status(0);
+		if(!sd_state) return RES_NOTRDY;
+		printf("disk_write: Attempting to write, disk is initialized. Make sure to check hardware Write Protection.\n");
 		result = SD_disk_write(buff, sector, count);
-
+		if(result == 1) res = RES_OK;
+		if(result == -1) res = RES_ERROR;
 		// translate the result code here
-
 		return res;
 
 	}
