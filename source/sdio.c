@@ -9,15 +9,16 @@ int SD_disk_status() {
 	if(ocr & 0x8000) {
 		return 0;
 	}
-	else
+	else {
+		printf("disk_status failed\n");
 		return -1;
+	}
 
 };
 
 int SD_disk_initialize() {
 	//this is disk_initialize, one of the 3 required driver functions. 
 	//That has a DSTATUS return value though, so change name later
-	printf("Attempting Initilzation of the SD card\n");
 	spi_gpio_init();
 	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
 	volatile char new_val = 0;
@@ -64,12 +65,10 @@ int SD_disk_initialize() {
 	r3_resp = sd_rcv_r3();	
 	err_code = sd_cmd(16,0x200,1);
 	*GPIO_0_DATA |= Pin3; // set CS High
-	printf("Successful Initilzation of the SD card\n");
 	return 1;
 };
 
 int SD_disk_read(unsigned char* buffer, uint32_t sector_no, unsigned int count) {
-	printf("Attempting a read of the disk with (%x, %d, %d)\n", buffer, sector_no, count);
 	int attempts;
 	uint8_t response;
 	// Completes a multi block read via CMD18
@@ -77,12 +76,11 @@ int SD_disk_read(unsigned char* buffer, uint32_t sector_no, unsigned int count) 
 	// Loop through each sector
 	for (int cur_sec = 0; cur_sec < count; cur_sec++) {
 		if(sd_read_block(buffer+512*cur_sec, sector_no+cur_sec)) {
-			printf("Failed on read of block %d/%d. Actually block %d\n", cur_sec+1,count, sector_no + 512);
+			printf("Failed on read of block %d/%d. Actually block %d\n", cur_sec+1,count, sector_no);
 			return -1;
 		}
 	}
 
-	printf("Completed a read of the disk\n");
 	return 0;
 };
 
@@ -91,47 +89,54 @@ int sd_read_block(unsigned char* buffer, uint32_t sector_no) {
 	
 	*GPIO_0_DATA &= ~Pin3; // set CS low
 	int rtv = sd_cmd(17, sector_no, 0);
-	if(rtv == 0xFF) {
+	if(rtv != 0x00) {
 		*GPIO_0_DATA |= Pin3; // set CS High
 		printf("Attempted reading of SD card at block %d, command 17 gave no response\n", sector_no);
 		return -1;
 	}
+	
 	// Reading Data Token
 	int attempts = 0;
-	const int MAX_ATTEMPTS = 512;
+	const int MAX_ATTEMPTS = 512*8;
 	uint8_t response = 0xFF;
+	uint8_t new_val = Pin0;
 
 	while ((response == 0xFF) && (attempts < MAX_ATTEMPTS)) {
-		response = sd_rcv_byte();
-		// buffer[attempts] = response;
+		new_val ^= Pin2;
+		*GPIO_0_DATA = new_val; // posedge
+
+		if(!(*GPIO_0_DATA & Pin1)) {
+			new_val ^= Pin2;
+			*GPIO_0_DATA = new_val; // negedge
+			break;
+		}
+		
+		new_val ^= Pin2;
+		*GPIO_0_DATA = new_val; // negedge
+		
 		attempts++;
 	}
-	if(response == 0xFF) { // Timeout
-		*GPIO_0_DATA |= Pin3; // set CS High
-		printf("Attempted to read SD with CMD 17, timeout waiting for Data Token\n");
+	if(attempts == MAX_ATTEMPTS) {
+		printf("Timed out waiting for data token\n");
 		return -1;
-	} else if (response != 0xFE) {
-		*GPIO_0_DATA |= Pin3; // set CS High
-		printf("Attempted to read SD with CMD 17, got back invalid Data Token %x\n", response);
-		return -1;
-	}
+	};
 
 	// Reading in data values
 	for (int cur_byte = 0; cur_byte < 512; cur_byte++) {
-		buffer[cur_byte + (512*sector_no)] = sd_rcv_byte();
+		buffer[cur_byte] = sd_rcv_byte();
 	}
 
 	// Taking in CRC, not used
 	sd_rcv_byte();
 	sd_rcv_byte();
-	sd_rcv_byte();
+
 	*GPIO_0_DATA |= Pin3; // set CS High
+	spi_send_byte(0xFF);
 	return 0;
 }
 
 int SD_disk_write(unsigned char* buffer, uint32_t sector_no, unsigned int count) {
 	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
-	printf("SD_disk_write: attempting to write %d blocks starting at sector %d\n", count, sector_no);
 	*GPIO_0_DATA &= ~Pin3; // set CS low
     for(int cur_sec = 0; cur_sec < count; cur_sec++){
 	//single block writes
@@ -141,7 +146,13 @@ int SD_disk_write(unsigned char* buffer, uint32_t sector_no, unsigned int count)
 			printf("SD_disk_write: Command 24 responded with 0x%2x instead of 0x00\n", rtv);
 			return -1;
 		}
+
+		// Send one buffer byte
 		spi_send_byte(0xFF);
+		// TEST: sending 2 additional
+		spi_send_byte(0xFF);
+		spi_send_byte(0xFF);
+
 		//send every byte in the 512. Start with the token, which is 0xFE
 		spi_send_byte(0xFE);
 		for(int cur_byte = 0; cur_byte < 512; cur_byte++){
@@ -158,17 +169,18 @@ int SD_disk_write(unsigned char* buffer, uint32_t sector_no, unsigned int count)
 			return -1;
 		}
 		int attempts = 0;
-		while((sd_rcv_byte() == 0x00) && (attempts < 512)) {
+		while((sd_rcv_byte() == 0x00) && (attempts < 512*8)) {
 			attempts++;
 		}
-		if(attempts == 512) {
+		if(attempts == 512*8) {
 			*GPIO_0_DATA |= Pin3; // set CS high
 			printf("Attempting write, stuck in BUSY\n");
 			return -1;
 		}
 	}
-	printf("SD_disk_write: completed, exiting with success code of 1.\n");
-	printf("Blocks %d to %d were written to!\n", sector_no, sector_no + count);
+	// printf("SD_disk_write: completed, exiting with success code of 1.\n");
+	// printf("Blocks %d to %d were written to!\n", sector_no, sector_no + count);
 	*GPIO_0_DATA |= Pin3; // set CS high
+	spi_send_byte(0xFF);
 	return 0;
 };

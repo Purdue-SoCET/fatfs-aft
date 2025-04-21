@@ -43,19 +43,20 @@ void spi_send_byte(char msg){
 
 char sd_rcv_byte(void) {
 	volatile unsigned int* GPIO_0_DATA = (unsigned int*) 0x80000000;
-	char new_val = Pin0;
 
 	char read_data = 0;
+	char delay_var = 0;
 	// Read in 8 bits
 	for(int i = 0; i < 8; i++) {
-		new_val ^= Pin2;
-		*GPIO_0_DATA = new_val; // posedge
+		*GPIO_0_DATA = Pin0 | Pin2; // posedge
 
 		read_data <<= 1;
 		read_data |= (*GPIO_0_DATA & Pin1) >> 1;
 		
-		new_val ^= Pin2;
-		*GPIO_0_DATA = new_val; // negedge
+		*GPIO_0_DATA = Pin0; // negedge
+
+		delay_var <<= 1;
+		delay_var |= (*GPIO_0_DATA & Pin1) >> 1;
 	}
 
 	return read_data;

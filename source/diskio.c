@@ -118,7 +118,7 @@ DRESULT disk_write (
 	case DEV_SD :
 		// translate the arguments here
 		DSTATUS sd_state = disk_status(0);
-		if(!sd_state) return RES_NOTRDY;
+		if(sd_state) return RES_NOTRDY;
 		result = SD_disk_write(buff, sector, count);
 		if(!result) res = RES_OK;
 		else res = RES_ERROR;
@@ -150,9 +150,25 @@ DRESULT disk_ioctl (
 	case DEV_SD :
 
 		// Process of the command for the RAM drive
-
+		if (cmd == CTRL_SYNC) {
+			return RES_OK;
+		}
+		else if(cmd == GET_SECTOR_COUNT) {
+			LBA_t* new_buff = (LBA_t*) buff;
+			*new_buff = 0x3A0A7FF;
+			return RES_OK;
+		}
+		else if(cmd == GET_SECTOR_SIZE) {
+			WORD* new_buff = (WORD*) buff;
+			*new_buff = 512;
+			return RES_OK;
+		}
+		else if(cmd == GET_BLOCK_SIZE) {
+			DWORD* new_buff = (DWORD*) buff;
+			*new_buff = 1;
+			return RES_OK;
+		}
 		return res;
-
 	}
 
 	return RES_PARERR;

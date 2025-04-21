@@ -11,7 +11,9 @@ CFLAGS += -DUART_STDIO
 # Source files
 # SRCS = os.c main.c
 # SRCS = blink.c
-SRCS = test.c os.c  $(FATFS)
+# SRCS = test.c os.c  $(FATFS)
+# SRCS = fatfs_test.c os.c $(FATFS)
+SRCS = file_test.c os.c $(FATFS)
 FATFS = source/*.c
 
 # Output files
