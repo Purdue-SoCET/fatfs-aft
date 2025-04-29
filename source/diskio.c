@@ -119,7 +119,7 @@ DRESULT disk_write (
 		// translate the arguments here
 		DSTATUS sd_state = disk_status(0);
 		if(sd_state) return RES_NOTRDY;
-		result = SD_disk_write(buff, sector, count);
+		result = SD_disk_write((unsigned char*) buff, sector, count);
 		if(!result) res = RES_OK;
 		else res = RES_ERROR;
 		// translate the result code here
