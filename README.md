@@ -1,11 +1,11 @@
 # FatFs for the AFT0x7+ w/ SD card
 ## Introduction
-This is a port of the File allocation table File System(FatFs) to the AFT0x7+. Contained in this ReadME are relevant requirements to run FatFs on the AFT. If you have questions about FatFs itself, read about [FatFs](http://elm-chan.org/fsw/ff/).
+This is a port of the File allocation table File System (FatFs) to the AFT0x7+. Contained in this README are relevant requirements to run FatFs on the AFT. If you have questions about FatFs itself, read about [FatFs](http://elm-chan.org/fsw/ff/).
 ### General Requirements
 It is presumed you have taken (or are taking) ECE 36200, and in particular understand SPI channels. You don't necessarily need to understand SPI to work with FatFs, but it will help massively with debugging if issues arise.
 
-> [!NOTE] <br>
-> FatFs will only work on the FPGA, not software simulation! This is because there must be a physical backing storage with which FatFs communicates, and we can't simulate an SD card.
+> [!NOTE]
+> FatFs will only work on the FPGA, not software simulation. This is because there must be a physical backing storage with which FatFs communicates, and we can't simulate an SD card.
 ### Software Requirements
 This project requires standard library functions from the "string" and "stdlib" libraries. To implement these on the AFT, you will need picolibc set up. Refer to software instructions if you encounter issues here.
 ### Hardware requirements
@@ -21,7 +21,7 @@ When working with FatFs, all work must be done off of an FPGA simulating the AFT
 ## Working with FatFs
 ### Testing your Implementation
 In order to test your code, you can run "FatFs_test.c". This will run a set of 24 tests 10 times to confirm your SD card can communicate with the AFT correctly.
-> [!WARNING] <br>
+> [!WARNING]
 > This test will erase all the contents of your SD card and unformat it.
 ### General Flow
 In order to use a file system, it must exist and be mounted. FatFs comes with functions to do both of these things. Below is an example of code you can generally to mount a filesystem to the SD card. This must be done each time you attempt to use the SD card.
@@ -44,12 +44,12 @@ In order to use a file system, it must exist and be mounted. FatFs comes with fu
             //would be good to check fr
             break;
         }
-        else printf("mkfs failed!\n");
+        else printf("mkfs failed\n");
         //error handle as you wish
     }
     ...your file code here
 ```
-Here, we try to mount the filesystem(assuming it exists) and FatF can tell us if it doesn't. If so, we can try to make a file system. Note that it takes quite a long time(minutes) to complete mkfs. If mount succeeds, you can then use any function supported by us and FatFs. 
+Here, we try to mount the filesystem (assuming it exists) and FatF can tell us if it doesn't. If so, we can try to make a file system. Note that it takes quite a long time (minutes) to complete mkfs. If mount succeeds, you can then use any function supported by us and FatFs. 
 ## Code Support
 There are many different file functions built into FatFs. If you successfully mounted the file system, all of these should work. The exception to this is timestamp functionality, which is not currently implemented. The AFT (as of writing this) does not have a real time clock. Therefore, timestamps for files written to/created by the AFT are not reliable. It would be possible to fill in a dummy time in ''get_fattime()'' but it is not currently implemented.
 ## Example Project
